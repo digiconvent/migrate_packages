@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
-func DownloadRepoZip(owner, name, token string) error {
+func DownloadExtractDeleteZip(owner, name, token string) error {
 	targetDir := path.Join(os.TempDir(), "migrate_packages")
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/", owner, name)
+	targetZip := path.Join(os.TempDir(), "migrate_packages.zip")
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/main", owner, name)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -32,10 +34,11 @@ func DownloadRepoZip(owner, name, token string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("repository " + owner + "/" + name + " does not exist")
+		body, _ := io.ReadAll(resp.Body)
+		return errors.New("repository " + owner + "/" + name + " does not exist: " + string(body))
 	}
 
-	outFile, err := os.Create(path.Join(targetDir, "migrate_packages.zip"))
+	outFile, err := os.Create(targetZip)
 	if err != nil {
 		return err
 	}
@@ -48,9 +51,16 @@ func DownloadRepoZip(owner, name, token string) error {
 
 	openCloseReader, _ := zip.OpenReader(outFile.Name())
 	defer openCloseReader.Close()
+
+	var prefix string = ""
 	for _, file := range openCloseReader.File {
+		if prefix == "" {
+			prefix = file.Name
+		}
+		fileName, _ := strings.CutPrefix(file.Name, prefix)
+		target := path.Join(targetDir, fileName)
 		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(file.Name, file.Mode())
+			err := os.MkdirAll(target, file.Mode())
 			if err != nil {
 				return err
 			}
@@ -61,7 +71,7 @@ func DownloadRepoZip(owner, name, token string) error {
 			}
 			defer srcFile.Close()
 
-			destFile, err := os.OpenFile(path.Join(targetDir, file.Name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+			destFile, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 			if err != nil {
 				return err
 			}
@@ -73,5 +83,7 @@ func DownloadRepoZip(owner, name, token string) error {
 			}
 		}
 	}
+
+	os.Remove(targetZip)
 	return nil
 }

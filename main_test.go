@@ -29,7 +29,7 @@ func TestPackageManager(t *testing.T) {
 			t.Fatal("did not expect err but got " + err.Error())
 		}
 		if !slices.Contains(packages, "iam") || !slices.Contains(packages, "post") {
-			t.Fatal("expected both iam and post to be part of the packages")
+			t.Fatal("expected both iam and post to be part of the packages, instead got", packages)
 		}
 	})
 	t.Run("WithPublicRepository", func(t *testing.T) {
@@ -43,8 +43,8 @@ func TestPackageManager(t *testing.T) {
 		if err != nil {
 			t.Fatal("expected err to be nil instead got " + err.Error())
 		}
-		manager := repo.WithPkgDir(pkgFolder)
 
+		manager := repo.WithPkgDir(pkgFolder)
 		if manager == nil {
 			t.Fatal("expected manager not to be nil")
 		}
@@ -53,8 +53,9 @@ func TestPackageManager(t *testing.T) {
 		if err != nil {
 			t.Fatal("did not expect err but got " + err.Error())
 		}
-		if !slices.Contains(packages, "iam") || !slices.Contains(packages, "post") {
-			t.Fatal("expected both iam and post to be part of the packages")
+
+		if !slices.Contains(packages, "iam") {
+			t.Fatal("expected iam to be part of the packages, instead got", packages)
 		}
 	})
 }

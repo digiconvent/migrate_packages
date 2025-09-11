@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 
 	migrate_packages_internal "github.com/digiconvent/migrate_packages/internal"
 )
@@ -14,6 +15,45 @@ type data struct {
 	pkgDir      string
 }
 
+// WithPkgDir implements repoPackageManager.
+func (d *data) WithPkgDir(dir string) packageManager {
+	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
+	d.pkgDir = path.Join(downloadFolder, dir)
+
+	segments := strings.Split(dir, "/")
+	toKeep := ""
+	for i := range len(segments) {
+		toScan := downloadFolder + toKeep
+		entries, _ := os.ReadDir(toScan)
+		toKeep += "/" + segments[i]
+		for _, entry := range entries {
+			uri := path.Join(toScan, entry.Name())
+			keep := strings.HasSuffix(uri, toKeep)
+			if !keep {
+				os.RemoveAll(uri)
+			}
+		}
+	}
+
+	packages, err := d.GetPackages()
+	if err != nil {
+		return nil
+	}
+
+	for _, pkg := range packages {
+		pkgDir := path.Join(downloadFolder, "", dir, pkg)
+		entries, _ := os.ReadDir(pkgDir)
+		for _, entry := range entries {
+			toRemove := path.Join(pkgDir, entry.Name())
+			if entry.Name() != "db" {
+				os.RemoveAll(toRemove)
+			}
+		}
+	}
+
+	return d
+}
+
 func (d *data) GetPackages() ([]string, error) {
 	entries, err := os.ReadDir(d.pkgDir)
 	if err != nil {
@@ -22,7 +62,14 @@ func (d *data) GetPackages() ([]string, error) {
 	var packages = []string{}
 	for _, entry := range entries {
 		if entry.IsDir() {
-			packages = append(packages, entry.Name())
+			// only append if the folder is not empty
+			dirEntries, err := os.ReadDir(path.Join(d.pkgDir, entry.Name()))
+			if err != nil {
+				return nil, err
+			}
+			if len(dirEntries) > 0 {
+				packages = append(packages, entry.Name())
+			}
 		}
 	}
 	return packages, nil
@@ -38,7 +85,7 @@ func (d *data) Versions() ([]string, error) {
 	for _, pkg := range packages {
 		entries, err := os.ReadDir(path.Join(d.pkgDir, pkg, "db"))
 		if err != nil {
-			return nil, err
+			continue // if db doesn't exist, don't do anything
 		}
 		for _, entry := range entries {
 			if ToVersion(entry.Name()) == nil {
@@ -69,19 +116,19 @@ func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (packageManager, err
 }
 
 func (d *data) WithPrivateRepository(username string, repository string, token string) (repoPackageManager, error) {
-	err := migrate_packages_internal.DownloadRepoZip(username, repository, token)
+	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, token)
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return d, nil
 }
 
 func (d *data) WithPublicRepository(username string, repository string) (repoPackageManager, error) {
-	err := migrate_packages_internal.DownloadRepoZip(username, repository, "")
+	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, "")
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return d, nil
 }
 
 type packageManager interface {
