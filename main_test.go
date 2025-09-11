@@ -1,12 +1,21 @@
 package migrate_packages_test
 
 import (
+	"fmt"
 	"os"
+	"path"
 	"slices"
 	"testing"
 
 	"github.com/digiconvent/migrate_packages"
 )
+
+func cleanup() {
+	err := os.RemoveAll(path.Join(os.TempDir(), "migrate_packages"))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
 
 func TestPackageManager(t *testing.T) {
 	t.Run("WithLocalFiles", func(t *testing.T) {
@@ -31,6 +40,8 @@ func TestPackageManager(t *testing.T) {
 		if !slices.Contains(packages, "iam") || !slices.Contains(packages, "post") {
 			t.Fatal("expected both iam and post to be part of the packages, instead got", packages)
 		}
+		t.Log(manager.Versions())
+		cleanup()
 	})
 	t.Run("WithPublicRepository", func(t *testing.T) {
 		username := "digiconvent"
@@ -53,9 +64,11 @@ func TestPackageManager(t *testing.T) {
 		if err != nil {
 			t.Fatal("did not expect err but got " + err.Error())
 		}
-
-		if !slices.Contains(packages, "iam") {
-			t.Fatal("expected iam to be part of the packages, instead got", packages)
+		if !slices.Contains(packages, "iam") || !slices.Contains(packages, "post") {
+			t.Fatal("expected both iam and post to be part of the packages, instead got", packages)
 		}
+
+		t.Log(manager.Versions())
+		cleanup()
 	})
 }
