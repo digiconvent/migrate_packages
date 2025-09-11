@@ -1,0 +1,1 @@
+alter table users add last_name varchar default '';
