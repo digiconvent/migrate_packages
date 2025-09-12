@@ -1,0 +1,1 @@
+-- this file is for the purpose of handling a non-existing database even though other databases exist
