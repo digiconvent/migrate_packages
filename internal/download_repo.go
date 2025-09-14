@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// no need to test this it works trust me bro
 func DownloadExtractDeleteZip(owner, name, token string) error {
 	targetDir := path.Join(os.TempDir(), "migrate_packages")
 	targetZip := path.Join(os.TempDir(), "migrate_packages.zip")

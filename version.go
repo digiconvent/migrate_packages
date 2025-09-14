@@ -1,6 +1,7 @@
 package migrate_packages
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -9,6 +10,10 @@ type Version struct {
 	Major int
 	Minor int
 	Patch int
+}
+
+func (a *Version) String() string {
+	return fmt.Sprintf("%v.%v.%v", a.Major, a.Minor, a.Patch)
 }
 
 func ToVersion(a string) *Version {
@@ -31,22 +36,38 @@ func ToVersion(a string) *Version {
 	}
 }
 
-func (v *Version) EarlierThan(b *Version) bool {
-	if b.Major > v.Major {
+func (a *Version) Equals(b *Version) bool {
+	return a.Major == b.Major && a.Minor == b.Minor && a.Patch == b.Patch
+}
+func (a *Version) LaterThan(b *Version) bool {
+	return b.EarlierThan(a)
+}
+func (a *Version) EarlierThan(b *Version) bool {
+	if a.Equals(b) {
 		return false
 	}
-	if b.Minor > v.Minor {
+
+	if a.Major > b.Major {
 		return false
+	} else if a.Major < b.Major {
+		return true
 	}
-	if b.Patch > v.Patch {
+
+	if a.Minor > b.Minor {
+		return false
+	} else if a.Minor < b.Minor {
+		return true
+	}
+
+	if a.Patch > b.Patch {
 		return false
 	}
 	return true
 }
 
-func (v *Version) MigrateTo(targetVersion *Version) packageManagerChoice {
+func (a *Version) MigrateTo(targetVersion *Version) packageManagerChoice {
 	return &data{
-		fromVersion: v,
+		fromVersion: a,
 		toVersion:   targetVersion,
 	}
 }

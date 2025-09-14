@@ -13,10 +13,35 @@ type data struct {
 	fromVersion *Version
 	toVersion   *Version
 	pkgDir      string
+	dataDir     string
 }
 
-// WithPkgDir implements repoPackageManager.
-func (d *data) WithPkgDir(dir string) packageManager {
+func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
+	versionInPkgDir := path.Join(d.pkgDir, pkg, "db", version)
+	files, err := os.ReadDir(versionInPkgDir)
+	if err != nil {
+		return "", err
+	}
+
+	var migrationScript string = ""
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(file.Name(), ".sql") {
+			continue
+		}
+		// these files cannot be too big to handle so reading the entire contents of an sql file should not be a problem
+		contents, err := os.ReadFile(path.Join(versionInPkgDir, file.Name()))
+		if err != nil {
+			continue
+		}
+		migrationScript += "\n-- " + file.Name() + "\n\n" + string(contents)
+	}
+	return migrationScript, nil
+}
+
+func (d *data) WithPkgDir(dir string) migrate_packages_internal.PackageManager {
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
@@ -110,7 +135,7 @@ func (d *data) ToVersion(ma int, mi int, pa int) packageManagerChoice {
 	return d
 }
 
-func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (packageManager, error) {
+func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (migrate_packages_internal.PackageManager, error) {
 	d.pkgDir = path.Join(projectRoot, pkgDir)
 	return d, nil
 }
@@ -131,9 +156,26 @@ func (d *data) WithPublicRepository(username string, repository string) (repoPac
 	return d, nil
 }
 
-type packageManager interface {
-	GetPackages() ([]string, error)
-	Versions() ([]string, error)
+func (d *data) VersionsToMigrate() ([]string, error) {
+	versions, err := d.Versions()
+	if err != nil {
+		return nil, err
+	}
+	var versionsToMigrate = []string{}
+	for _, v := range versions {
+		version := ToVersion(v)
+		if version.EarlierThan(d.fromVersion) {
+			continue
+		}
+		if d.fromVersion.Equals(version) {
+			continue
+		}
+		if version.LaterThan(d.toVersion) {
+			continue
+		}
+		versionsToMigrate = append(versionsToMigrate, version.String())
+	}
+	return versionsToMigrate, nil
 }
 
 func From(version *Version) migrateToVersion {
@@ -157,9 +199,10 @@ type migrateToVersion interface {
 type packageManagerChoice interface {
 	WithPublicRepository(username, repository string) (repoPackageManager, error)
 	WithPrivateRepository(username, repository, token string) (repoPackageManager, error)
-	WithLocalFilesAt(projectRoot, pkgDir string) (packageManager, error)
+	WithLocalFilesAt(projectRoot, pkgDir string) (migrate_packages_internal.PackageManager, error)
 }
 
 type repoPackageManager interface {
-	WithPkgDir(dir string) packageManager
+	// dir is the directory, relative to the project root, where the packages are
+	WithPkgDir(dir string) migrate_packages_internal.PackageManager
 }
