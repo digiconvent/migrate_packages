@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/digiconvent/migrate_packages"
-	migrate_packages_internal "github.com/digiconvent/migrate_packages/internal"
 )
 
 func cleanup() {
@@ -68,7 +67,7 @@ func TestPackageManager(t *testing.T) {
 	})
 }
 
-func testPackageManager(manager migrate_packages_internal.PackageManager, t *testing.T) {
+func testPackageManager(manager migrate_packages.PackageManager, t *testing.T) {
 	isPackages, err := manager.GetPackages()
 	shouldPackages := []string{"iam", "post", "sys"}
 	if err != nil {
@@ -104,7 +103,7 @@ func testPackageManager(manager migrate_packages_internal.PackageManager, t *tes
 	cleanup()
 }
 
-func expectMigration(t *testing.T, manager migrate_packages_internal.PackageManager, packageName, version string) {
+func expectMigration(t *testing.T, manager migrate_packages.PackageManager, packageName, version string) {
 	script, _ := manager.GetPackageMigration(packageName, version)
 	if script != migrationContents[packageName+version] {
 		t.Fatal("expected", migrationContents[packageName+version], "instead got", script)

@@ -6,8 +6,20 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/digiconvent/migrate_packages/db"
 	migrate_packages_internal "github.com/digiconvent/migrate_packages/internal"
 )
+
+type PackageManager interface {
+	GetPackages() ([]string, error)
+	Versions() ([]string, error)
+	VersionsToMigrate() ([]string, error)
+	GetPackageMigration(pkg, version string) (string, error)
+	// <dir> is the folder where the data of the packages is located.
+	// e.g., if package 'iam' has data, the database would be located at <dir>/iam/iam.db
+	// so the <dir> usually is a home directory
+	MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, error)
+}
 
 type data struct {
 	fromVersion *Version
@@ -41,7 +53,7 @@ func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
 	return migrationScript, nil
 }
 
-func (d *data) WithPkgDir(dir string) migrate_packages_internal.PackageManager {
+func (d *data) WithPkgDir(dir string) PackageManager {
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
@@ -135,7 +147,7 @@ func (d *data) ToVersion(ma int, mi int, pa int) packageManagerChoice {
 	return d
 }
 
-func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (migrate_packages_internal.PackageManager, error) {
+func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (PackageManager, error) {
 	d.pkgDir = path.Join(projectRoot, pkgDir)
 	return d, nil
 }
@@ -199,10 +211,10 @@ type migrateToVersion interface {
 type packageManagerChoice interface {
 	WithPublicRepository(username, repository string) (repoPackageManager, error)
 	WithPrivateRepository(username, repository, token string) (repoPackageManager, error)
-	WithLocalFilesAt(projectRoot, pkgDir string) (migrate_packages_internal.PackageManager, error)
+	WithLocalFilesAt(projectRoot, pkgDir string) (PackageManager, error)
 }
 
 type repoPackageManager interface {
 	// dir is the directory, relative to the project root, where the packages are
-	WithPkgDir(dir string) migrate_packages_internal.PackageManager
+	WithPkgDir(dir string) PackageManager
 }

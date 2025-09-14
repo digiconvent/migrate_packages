@@ -17,7 +17,6 @@ var reponame = "migrate_packages"
 var DataFolder = "/home/digiconvent/data"
 
 func TestDatabaseHandling(t *testing.T) {
-
 	repo, err := migrate_packages.From(currentVersion).To(targetVersion).WithPublicRepository(username, reponame)
 	if err != nil {
 		t.Fatal(err)
