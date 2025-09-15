@@ -2,6 +2,7 @@ package migrate_packages
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"slices"
@@ -27,6 +28,8 @@ type data struct {
 	toVersion   *Version
 	pkgDir      string
 	dataDir     string
+
+	verbose bool
 }
 
 func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
@@ -55,28 +58,41 @@ func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
 }
 
 func (d *data) WithPkgDir(dir string) (PackageManager, error) {
+	if d.verbose {
+		fmt.Println("Packages located relative at " + dir)
+	}
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
 	if _, err := os.Stat(d.pkgDir); err != nil {
+		fmt.Println("Could not find temporary download folder (" + d.pkgDir + ") for packages")
 		return nil, errors.New("could not find folder " + d.pkgDir + ". Are you sure it is present in your repository?")
 	}
 
 	segments := slices.DeleteFunc(strings.Split(dir, "/"), func(a string) bool {
 		return a == ""
 	})
+	if d.verbose {
+		fmt.Println("removing non-migration files since they are not needed")
+	}
 	toKeep := ""
 	for i := range len(segments) {
 		toScan := downloadFolder + toKeep
+		toKeep += "/" + segments[i]
+		if d.verbose {
+			fmt.Println("Scanning " + toScan + " and getting rid of anything that does not start with " + toKeep)
+		}
 		entries, err := os.ReadDir(toScan)
 		if err != nil {
 			return nil, err
 		}
-		toKeep += "/" + segments[i]
 		for _, entry := range entries {
 			uri := path.Join(toScan, entry.Name())
 			keep := strings.HasSuffix(uri, toKeep)
 			if !keep {
+				if d.verbose {
+					fmt.Println("Delete " + uri)
+				}
 				err = os.RemoveAll(uri)
 				if err != nil {
 					return nil, err
@@ -111,6 +127,9 @@ func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 }
 
 func (d *data) GetPackages() ([]string, error) {
+	if d.verbose {
+		fmt.Println("Scanning " + d.pkgDir + " for packages")
+	}
 	entries, err := os.ReadDir(d.pkgDir)
 	if err != nil {
 		return nil, err
@@ -118,13 +137,24 @@ func (d *data) GetPackages() ([]string, error) {
 	var packages = []string{}
 	for _, entry := range entries {
 		if entry.IsDir() {
+			if d.verbose {
+				fmt.Println("Found " + entry.Name())
+			}
 			// only append if the folder is not empty
 			dirEntries, err := os.ReadDir(path.Join(d.pkgDir, entry.Name()))
 			if err != nil {
 				return nil, err
 			}
 			if len(dirEntries) > 0 {
+				if _, err := os.Stat(path.Join(d.pkgDir, entry.Name(), "db")); err != nil {
+					fmt.Println("No db folder found for " + entry.Name() + ", skipping...")
+					continue
+				}
 				packages = append(packages, entry.Name())
+			} else {
+				if d.verbose {
+					fmt.Println("No contents found for " + entry.Name() + ", skipping...")
+				}
 			}
 		}
 	}
@@ -156,6 +186,11 @@ func (d *data) Versions() ([]string, error) {
 	return versions, nil
 }
 
+func (d *data) Verbose() packageManagerChoice {
+	d.verbose = true
+	return d
+}
+
 func (d *data) To(version *Version) packageManagerChoice {
 	d.toVersion = version
 	return d
@@ -172,7 +207,7 @@ func (d *data) WithLocalFilesAt(projectRoot, pkgDir string) (PackageManager, err
 }
 
 func (d *data) WithPrivateRepository(username string, repository string, token string) (repoPackageManager, error) {
-	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, token)
+	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, token, d.verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +215,7 @@ func (d *data) WithPrivateRepository(username string, repository string, token s
 }
 
 func (d *data) WithPublicRepository(username string, repository string) (repoPackageManager, error) {
-	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, "")
+	err := migrate_packages_internal.DownloadExtractDeleteZip(username, repository, "", d.verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +273,7 @@ type migrateToVersion interface {
 }
 
 type packageManagerChoice interface {
+	Verbose() packageManagerChoice
 	WithPublicRepository(username, repository string) (repoPackageManager, error)
 	WithPrivateRepository(username, repository, token string) (repoPackageManager, error)
 	WithLocalFilesAt(projectRoot, pkgDir string) (PackageManager, error)

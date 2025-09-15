@@ -12,10 +12,23 @@ import (
 )
 
 // no need to test this it works trust me bro
-func DownloadExtractDeleteZip(owner, name, token string) error {
+func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 	targetDir := path.Join(os.TempDir(), "migrate_packages")
 	targetZip := path.Join(os.TempDir(), "migrate_packages.zip")
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/main", owner, name)
+
+	if _, err := os.Stat(targetZip); err != nil {
+		if verbose {
+			fmt.Println(targetZip + " already exists, cleaning up")
+		}
+		err = os.Remove(targetZip)
+		if err != nil {
+			if verbose {
+				fmt.Println("Could not remove " + targetZip + ": " + err.Error() + ". Please remove it manually")
+			}
+			return err
+		}
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -39,8 +52,14 @@ func DownloadExtractDeleteZip(owner, name, token string) error {
 		return errors.New("repository " + owner + "/" + name + " does not exist: " + string(body))
 	}
 
+	if verbose {
+		fmt.Println("Downloading " + url)
+	}
 	outFile, err := os.Create(targetZip)
 	if err != nil {
+		if verbose {
+			fmt.Println("Could not create " + targetZip + ": " + err.Error())
+		}
 		return err
 	}
 	defer outFile.Close()
@@ -57,9 +76,15 @@ func DownloadExtractDeleteZip(owner, name, token string) error {
 	for _, file := range openCloseReader.File {
 		if prefix == "" {
 			prefix = file.Name
+			if verbose {
+				fmt.Println("Setting prefix to " + prefix + " (we want to have the zipped files, not nested inside another folder)")
+			}
 		}
 		fileName, _ := strings.CutPrefix(file.Name, prefix)
 		target := path.Join(targetDir, fileName)
+		if verbose {
+			fmt.Println(target)
+		}
 		if file.FileInfo().IsDir() {
 			err := os.MkdirAll(target, file.Mode())
 			if err != nil {
@@ -85,6 +110,12 @@ func DownloadExtractDeleteZip(owner, name, token string) error {
 		}
 	}
 
-	os.Remove(targetZip)
+	err = os.Remove(targetZip)
+
+	if err != nil {
+		if verbose {
+			fmt.Println("Could not clean up " + targetZip)
+		}
+	}
 	return nil
 }
