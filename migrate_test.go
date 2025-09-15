@@ -44,7 +44,10 @@ func TestPackageManager(t *testing.T) {
 			t.Fatal("expected err to be nil instead got " + err.Error())
 		}
 
-		manager := repo.WithPkgDir(pkgFolder)
+		manager, err := repo.WithPkgDir(pkgFolder)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if manager == nil {
 			t.Fatal("expected manager not to be nil")
 		}
@@ -59,7 +62,10 @@ func TestPackageManager(t *testing.T) {
 			t.Fatal("expected err to be nil instead got " + err.Error())
 		}
 
-		manager := repo.WithPkgDir(pkgFolder)
+		manager, err := repo.WithPkgDir(pkgFolder)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if manager == nil {
 			t.Fatal("expected manager not to be nil")
 		}

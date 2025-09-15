@@ -21,7 +21,11 @@ func TestDatabaseHandling(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	databases, err := repo.WithPkgDir(pkgFolder).MigrateDatabasesIn(DataFolder)
+	manager, err := repo.WithPkgDir(pkgFolder)
+	if err != nil {
+		t.Fatal(err)
+	}
+	databases, err := manager.MigrateDatabasesIn(DataFolder)
 	if err != nil {
 		t.Fatal(err)
 	}

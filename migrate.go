@@ -53,7 +53,7 @@ func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
 	return migrationScript, nil
 }
 
-func (d *data) WithPkgDir(dir string) PackageManager {
+func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
@@ -61,34 +61,46 @@ func (d *data) WithPkgDir(dir string) PackageManager {
 	toKeep := ""
 	for i := range len(segments) {
 		toScan := downloadFolder + toKeep
-		entries, _ := os.ReadDir(toScan)
+		entries, err := os.ReadDir(toScan)
+		if err != nil {
+			return nil, err
+		}
 		toKeep += "/" + segments[i]
 		for _, entry := range entries {
 			uri := path.Join(toScan, entry.Name())
 			keep := strings.HasSuffix(uri, toKeep)
 			if !keep {
-				os.RemoveAll(uri)
+				err = os.RemoveAll(uri)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
 	packages, err := d.GetPackages()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	for _, pkg := range packages {
 		pkgDir := path.Join(downloadFolder, "", dir, pkg)
-		entries, _ := os.ReadDir(pkgDir)
+		entries, err := os.ReadDir(pkgDir)
+		if err != nil {
+			return nil, err
+		}
 		for _, entry := range entries {
 			toRemove := path.Join(pkgDir, entry.Name())
 			if entry.Name() != "db" {
-				os.RemoveAll(toRemove)
+				err = os.RemoveAll(toRemove)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
-	return d
+	return d, nil
 }
 
 func (d *data) GetPackages() ([]string, error) {
@@ -226,5 +238,5 @@ type packageManagerChoice interface {
 
 type repoPackageManager interface {
 	// dir is the directory, relative to the project root, where the packages are
-	WithPkgDir(dir string) PackageManager
+	WithPkgDir(dir string) (PackageManager, error)
 }
