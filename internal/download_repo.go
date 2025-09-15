@@ -81,9 +81,12 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 			}
 		}
 		fileName, _ := strings.CutPrefix(file.Name, prefix)
+		var reset = "\033[0m"
+		var red = "\033[31m"
+		var green = "\033[32m"
 		target := path.Join(targetDir, fileName)
 		if verbose {
-			fmt.Println("[Migrate Packages] " + target)
+			fmt.Println("[Migrate Packages] " + red + prefix + green + targetDir + reset + fileName)
 		}
 		if file.FileInfo().IsDir() {
 			err := os.MkdirAll(target, file.Mode())
