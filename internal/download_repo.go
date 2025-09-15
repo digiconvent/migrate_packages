@@ -19,7 +19,7 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 
 	if _, err := os.Stat(targetZip); err != nil {
 		if verbose {
-			fmt.Println(targetZip + " already exists, cleaning up")
+			fmt.Println(targetZip + " already exists, cleaning up " + err.Error())
 		}
 		err = os.Remove(targetZip)
 		if err != nil {
