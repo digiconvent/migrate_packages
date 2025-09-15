@@ -1,6 +1,7 @@
 package migrate_packages
 
 import (
+	"errors"
 	"os"
 	"path"
 	"slices"
@@ -57,7 +58,13 @@ func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
-	segments := strings.Split(dir, "/")
+	if _, err := os.Stat(d.pkgDir); err != nil {
+		return nil, errors.New("could not find folder " + d.pkgDir + ". Are you sure it is present in your repository?")
+	}
+
+	segments := slices.DeleteFunc(strings.Split(dir, "/"), func(a string) bool {
+		return a == ""
+	})
 	toKeep := ""
 	for i := range len(segments) {
 		toScan := downloadFolder + toKeep
