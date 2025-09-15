@@ -59,13 +59,13 @@ func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
 
 func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 	if d.verbose {
-		fmt.Println("Packages located relative at " + dir)
+		fmt.Println("[Migrate Packages] Packages located relative at " + dir)
 	}
 	downloadFolder := path.Join(os.TempDir(), "migrate_packages")
 	d.pkgDir = path.Join(downloadFolder, dir)
 
 	if _, err := os.Stat(d.pkgDir); err != nil {
-		fmt.Println("Could not find temporary download folder (" + d.pkgDir + ") for packages")
+		fmt.Println("[Migrate Packages] Could not find temporary download folder (" + d.pkgDir + ") for packages")
 		return nil, errors.New("could not find folder " + d.pkgDir + ". Are you sure it is present in your repository?")
 	}
 
@@ -73,14 +73,14 @@ func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 		return a == ""
 	})
 	if d.verbose {
-		fmt.Println("removing non-migration files since they are not needed")
+		fmt.Println("[Migrate Packages] removing non-migration files since they are not needed")
 	}
 	toKeep := ""
 	for i := range len(segments) {
 		toScan := downloadFolder + toKeep
 		toKeep += "/" + segments[i]
 		if d.verbose {
-			fmt.Println("Scanning " + toScan + " and getting rid of anything that does not start with " + toKeep)
+			fmt.Println("[Migrate Packages] Scanning " + toScan + " and getting rid of anything that does not start with " + toKeep)
 		}
 		entries, err := os.ReadDir(toScan)
 		if err != nil {
@@ -91,7 +91,7 @@ func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 			keep := strings.HasSuffix(uri, toKeep)
 			if !keep {
 				if d.verbose {
-					fmt.Println("Delete " + uri)
+					fmt.Println("[Migrate Packages] Delete " + uri)
 				}
 				err = os.RemoveAll(uri)
 				if err != nil {
@@ -128,7 +128,7 @@ func (d *data) WithPkgDir(dir string) (PackageManager, error) {
 
 func (d *data) GetPackages() ([]string, error) {
 	if d.verbose {
-		fmt.Println("Scanning " + d.pkgDir + " for packages")
+		fmt.Println("[Migrate Packages] Scanning " + d.pkgDir + " for packages")
 	}
 	entries, err := os.ReadDir(d.pkgDir)
 	if err != nil {
@@ -138,7 +138,7 @@ func (d *data) GetPackages() ([]string, error) {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if d.verbose {
-				fmt.Println("Found " + entry.Name())
+				fmt.Println("[Migrate Packages] Found " + entry.Name())
 			}
 			// only append if the folder is not empty
 			dirEntries, err := os.ReadDir(path.Join(d.pkgDir, entry.Name()))
@@ -147,13 +147,13 @@ func (d *data) GetPackages() ([]string, error) {
 			}
 			if len(dirEntries) > 0 {
 				if _, err := os.Stat(path.Join(d.pkgDir, entry.Name(), "db")); err != nil {
-					fmt.Println("No db folder found for " + entry.Name() + ", skipping...")
+					fmt.Println("[Migrate Packages] No db folder found for " + entry.Name() + ", skipping...")
 					continue
 				}
 				packages = append(packages, entry.Name())
 			} else {
 				if d.verbose {
-					fmt.Println("No contents found for " + entry.Name() + ", skipping...")
+					fmt.Println("[Migrate Packages] No contents found for " + entry.Name() + ", skipping...")
 				}
 			}
 		}

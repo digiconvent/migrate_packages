@@ -24,7 +24,7 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 		err = os.Remove(targetZip)
 		if err != nil {
 			if verbose {
-				fmt.Println("Could not remove " + targetZip + ": " + err.Error() + ". Please remove it manually")
+				fmt.Println("[Migrate Packages] Could not remove " + targetZip + ": " + err.Error() + ". Please remove it manually")
 			}
 			return err
 		}
@@ -53,12 +53,12 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 	}
 
 	if verbose {
-		fmt.Println("Downloading " + url)
+		fmt.Println("[Migrate Packages] Downloading " + url)
 	}
 	outFile, err := os.Create(targetZip)
 	if err != nil {
 		if verbose {
-			fmt.Println("Could not create " + targetZip + ": " + err.Error())
+			fmt.Println("[Migrate Packages] Could not create " + targetZip + ": " + err.Error())
 		}
 		return err
 	}
@@ -77,13 +77,13 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 		if prefix == "" {
 			prefix = file.Name
 			if verbose {
-				fmt.Println("Setting prefix to " + prefix + " (we want to have the zipped files, not nested inside another folder)")
+				fmt.Println("[Migrate Packages] Setting prefix to " + prefix + " (we want to have the zipped files, not nested inside another folder)")
 			}
 		}
 		fileName, _ := strings.CutPrefix(file.Name, prefix)
 		target := path.Join(targetDir, fileName)
 		if verbose {
-			fmt.Println(target)
+			fmt.Println("[Migrate Packages] " + target)
 		}
 		if file.FileInfo().IsDir() {
 			err := os.MkdirAll(target, file.Mode())
@@ -114,7 +114,7 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 
 	if err != nil {
 		if verbose {
-			fmt.Println("Could not clean up " + targetZip)
+			fmt.Println("[Migrate Packages] Could not clean up " + targetZip)
 		}
 	}
 	return nil
