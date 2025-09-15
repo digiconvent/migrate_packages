@@ -31,12 +31,18 @@ func (d *data) MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, 
 	for _, pkg := range packages {
 		migrationScript := ""
 		for _, version := range versions {
-			script, _ := d.GetPackageMigration(pkg, version)
+			script, err := d.GetPackageMigration(pkg, version)
+			if err != nil {
+				return nil, err
+			}
 			migrationScript += script
 		}
 
 		pkgDir := path.Join(dir, pkg)
-		os.MkdirAll(pkgDir, 0700)
+		err = os.MkdirAll(pkgDir, 0700)
+		if err != nil {
+			return nil, err
+		}
 		dbUri := path.Join(pkgDir, pkg+".db")
 		dbConn, err := db.New(dbUri)
 		if err != nil {
