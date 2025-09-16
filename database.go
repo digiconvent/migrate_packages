@@ -43,9 +43,10 @@ func (d *data) MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, 
 		databases[pkg] = dbConn
 
 		for _, version := range versions {
+			pkgv := pkg + ":" + version
 			script, err := d.GetPackageMigration(pkg, version)
-			if err != nil {
-				return nil, errors.New("Could not fetch " + pkg + ":" + version)
+			if err != nil && d.verbose {
+				fmt.Println("[Migrate Packages] No migration for " + pkgv)
 			}
 
 			keys := make([]string, 0, len(script))
@@ -56,7 +57,14 @@ func (d *data) MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, 
 			for _, s := range keys {
 				_, err = dbConn.Exec(script[s])
 				if err != nil {
-					return nil, errors.New("Could not migrate " + pkg + ":" + version + " (" + s + "): \n" + err.Error())
+					if d.verbose {
+						fmt.Println("[Migrate Packages] ❌" + pkgv + "(" + s + ")")
+					}
+					return nil, errors.New("Could not migrate " + pkgv + " (" + s + "): \n" + err.Error())
+				} else {
+					if d.verbose {
+						fmt.Println("[Migrate Packages] ✅" + pkgv + "(" + s + ")")
+					}
 				}
 			}
 		}
