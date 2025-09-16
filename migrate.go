@@ -16,7 +16,7 @@ type PackageManager interface {
 	GetPackages() ([]string, error)
 	Versions() ([]string, error)
 	VersionsToMigrate() ([]string, error)
-	GetPackageMigration(pkg, version string) (string, error)
+	GetPackageMigration(pkg, version string) (map[string]string, error)
 	// <dir> is the folder where the data of the packages is located.
 	// e.g., if package 'iam' has data, the database would be located at <dir>/iam/iam.db
 	// so the <dir> usually is a home directory
@@ -32,14 +32,14 @@ type data struct {
 	verbose bool
 }
 
-func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
+func (d *data) GetPackageMigration(pkg string, version string) (map[string]string, error) {
 	versionInPkgDir := path.Join(d.pkgDir, pkg, "db", version)
 	files, err := os.ReadDir(versionInPkgDir)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	var migrationScript string = ""
+	var migrationScript map[string]string = map[string]string{}
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -52,7 +52,7 @@ func (d *data) GetPackageMigration(pkg string, version string) (string, error) {
 		if err != nil {
 			continue
 		}
-		migrationScript += "\n-- " + file.Name() + "\n\n" + string(contents)
+		migrationScript[file.Name()] = string(contents)
 	}
 	return migrationScript, nil
 }

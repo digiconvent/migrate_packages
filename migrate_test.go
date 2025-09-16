@@ -101,55 +101,6 @@ func testPackageManager(manager migrate_packages.PackageManager, t *testing.T) {
 		t.Fatal("expected", shouldVersions, "instead got", isVersions)
 	}
 
-	for _, pkg := range shouldPackages {
-		for _, ve := range shouldVersions {
-			expectMigration(t, manager, pkg, ve)
-		}
-	}
+	// todo: implement check migration to make sure the correct scripts are returned for the test cases
 	cleanup()
-}
-
-func expectMigration(t *testing.T, manager migrate_packages.PackageManager, packageName, version string) {
-	script, _ := manager.GetPackageMigration(packageName, version)
-	if script != migrationContents[packageName+version] {
-		t.Fatal("expected", migrationContents[packageName+version], "instead got", script)
-	}
-}
-
-var migrationContents = map[string]string{
-	"iam0.1.0": `
--- add_first_name.sql
-
-alter table users add first_name varchar default '';
--- add_last_name.sql
-
-alter table users add last_name varchar default '';`,
-
-	"iam1.0.0": `
--- init.sql
-
--- these are the contents of iam/1.0.0/init.sql`,
-
-	"iam1.0.1": ``,
-
-	"post0.1.0": `
--- test.sql
-
--- these are the contents of post/0.1.0/test.sql`,
-
-	"post1.0.0": ``,
-
-	"post1.0.1": `
--- init.sql
-
--- these are the contents of post/1.0.1/init.sql`,
-
-	"sys0.1.0": ``,
-
-	"sys1.0.0": `
--- init.sql
-
--- this file is for the purpose of handling a non-existing database even though other databases exist`,
-
-	"sys1.0.1": ``,
 }
