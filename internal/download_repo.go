@@ -17,19 +17,6 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 	targetZip := path.Join(os.TempDir(), "migrate_packages.zip")
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/main", owner, name)
 
-	if _, err := os.Stat(targetZip); err == nil {
-		if verbose {
-			fmt.Println("[Migrate Packages] " + targetZip + " already exists, cleaning up\n" + err.Error())
-		}
-		err = os.Remove(targetZip)
-		if err != nil {
-			if verbose {
-				fmt.Println("[Migrate Packages] Could not remove " + targetZip + ": " + err.Error() + ". Please remove it manually")
-			}
-			return err
-		}
-	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -63,6 +50,7 @@ func DownloadExtractDeleteZip(owner, name, token string, verbose bool) error {
 		return err
 	}
 	defer outFile.Close()
+	defer os.Remove(targetZip)
 
 	_, err = io.Copy(outFile, resp.Body)
 	if err != nil {
