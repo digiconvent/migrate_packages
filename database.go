@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 
 	"github.com/digiconvent/migrate_packages/db"
 )
@@ -53,6 +54,7 @@ func (d *data) MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, 
 			for k := range script {
 				keys = append(keys, k)
 			}
+			slices.Sort(keys)
 
 			for _, s := range keys {
 				_, err = dbConn.Exec(script[s])
