@@ -56,7 +56,7 @@ func (d *data) MigrateDatabasesIn(dir string) (map[string]db.DatabaseInterface, 
 			for _, s := range keys {
 				_, err = dbConn.Exec(script[s])
 				if err != nil {
-					return nil, errors.New("Could not migrate " + pkg + ":" + version + " (" + s + ")")
+					return nil, errors.New("Could not migrate " + pkg + ":" + version + " (" + s + "): \n" + err.Error())
 				}
 			}
 		}
